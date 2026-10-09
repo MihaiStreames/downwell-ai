@@ -2,15 +2,15 @@
   <img src="assets/logo.png" alt="Downwell.AI" width="full"/>
 </p>
 
+<img src="assets/demo.gif" alt="The agent's view as it clears 2-1 and plays 2-2 in an evaluation run" align="right" height="220"/>
+
 [![Python](https://img.shields.io/badge/3.14.5-3572a5?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-purple)](https://github.com/MihaiStreames/Downwell.AI)
 [![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 DQN agent for [Downwell](https://store.steampowered.com/app/360740/Downwell/).
 
-<img src="assets/demo.gif" alt="The agent's view as it clears 2-1 and plays 2-2 in an evaluation run" align="right" width="240"/>
-
-The agent plays the real game. A small GML script patched into `data.win` packs the game state into one buffer every step: the player and run state, plus every active instance the agent cares about (enemies, terrain, hazards, gems, pickups, its own shots). The Python side reads that state from process memory, holds keys to act, and wraps it all in a [Gymnasium](https://gymnasium.farama.org/) environment trained with Double DQN. The gif is what the agent sees: its observation grid at the end of an evaluation run that got down to 2-2.
+The agent plays the real game. A small GML script patched into `data.win` packs the game state into one buffer every step: the player and run state, plus every active instance the agent cares about (enemies, terrain, hazards, gems, pickups, its own shots). The Python side reads that state from process memory, holds keys to act, and wraps it all in a [Gymnasium](https://gymnasium.farama.org/) environment trained with Double DQN.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ uv run python scripts/gen_export.py  # writes the gml and the injector to script
 3. `File > Save`, then launch the game and start a run
 4. `DOWNWELL_DATA_WIN="path/to/data.win" uv run python scripts/gen_ptrs.py` to point the reader at the patch's globals
 
-Run the injector once on a clean `data.win`, it appends code. The snapshot layout lives in `downwell_ai/env/memory/layout.py`: the patch is generated from it and the reader parses with it. After changing it, regenerate, re-inject on a clean `data.win` and rerun `gen_ptrs.py`.
+Run the injector once on a clean `data.win`, since it appends code. The snapshot layout lives in `downwell_ai/env/memory/layout.py` (the patch is generated from it and the reader parses with it).
 
 ## Usage
 
