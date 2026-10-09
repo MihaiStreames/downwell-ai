@@ -48,14 +48,12 @@ class ProgressTracker:
     def update(self, state: MemoryState, frames: int) -> float:
         """Advance by `frames` game frames ending in `state` and return the px of new best depth."""
         if _overall_level(state) != self.__level:
-            # new level, ypos restarts near the top
             self._anchor(state)
             return 0.0
 
-        # side rooms, shops and the upgrade menu are worth visiting, time there must not count as stalling
-        is_detour = state.in_side_room or state.shop or state.menu
+        # won't count time here as stalling
+        is_detour = state.in_side_room or state.menu
 
-        # gamemaker y grows downwards
         if state.room != self.__room or state.ypos <= self.__best_y:
             if not is_detour:
                 self.__frames_since_best += frames

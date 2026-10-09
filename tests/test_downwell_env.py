@@ -5,8 +5,12 @@ import pytest
 from conftest import make_config
 from conftest import make_reward_config
 from conftest import make_state
+from downwell_ai.consts import ACTION_JUMP
+from downwell_ai.consts import ACTION_LEFT
+from downwell_ai.consts import ACTION_LEFT_JUMP
 from downwell_ai.consts import ACTION_NONE
-from downwell_ai.consts import ACTION_RIGHT
+from downwell_ai.consts import INPUT_JUMP
+from downwell_ai.consts import INPUT_LEFT
 from downwell_ai.consts import INPUT_RIGHT
 from downwell_ai.env import downwell_env
 from downwell_ai.env._game_data import UPGRADE_NAMES
@@ -130,7 +134,7 @@ def test_dying_during_a_level_transition_ends_the_episode_instead_of_waiting_out
     assert not truncated
 
 
-def test_upgrade_menu_is_handed_to_the_agent_and_buttons_are_pressed_once(monkeypatch: pytest.MonkeyPatch):
+def test_upgrade_menu_is_handed_to_the_agent(monkeypatch: pytest.MonkeyPatch):
     menu = make_state(has_player=0, room=16, menu=1, offers=[13, 6, 9, -1])
     memory = _FakeMemory([make_state(), make_state(has_player=0, room=16), menu, menu, make_state(level=2)])
     monkeypatch.setattr(downwell_env, "attach", lambda: memory)
@@ -138,12 +142,41 @@ def test_upgrade_menu_is_handed_to_the_agent_and_buttons_are_pressed_once(monkey
     env.reset()
 
     obs, _, terminated, _, _ = env.step(ACTION_NONE)
-    memory.steps.clear()
-    env.step(ACTION_RIGHT)
 
     assert not terminated
     assert obs["vec"][VEC_MENU][0] == 1.0
-    assert memory.steps == [(INPUT_RIGHT, 1), (0, 3)]
+
+
+@pytest.mark.parametrize(
+    ("action", "expected_inputs"),
+    [
+        (ACTION_JUMP, [(INPUT_JUMP, 1), (0, 3)]),
+        (ACTION_LEFT, [(INPUT_RIGHT, 1), (0, 1), (INPUT_JUMP, 1), (0, 3)]),
+        (ACTION_NONE, [(INPUT_LEFT, 1), (0, 1), (INPUT_JUMP, 1), (0, 3)]),
+        (ACTION_LEFT_JUMP, [(INPUT_JUMP, 1), (0, 3)]),
+    ],
+)
+def test_an_action_in_the_upgrade_menu_picks_the_slot_of_its_index(monkeypatch: pytest.MonkeyPatch, action: int, expected_inputs: list[tuple[int, int]]):
+    # the cursor opens on the middle slot; with three offers action 4 wraps around to slot 1
+    menu = make_state(has_player=0, room=16, menu=1, offers=[13, 6, 9, -1], cursor=1)
+
+    target = action % 3
+    moved = make_state(has_player=0, room=16, menu=1, offers=[13, 6, 9, -1], cursor=target)
+    after = make_state(level=2)
+    states = [make_state(), menu, moved, moved, after] if target != 1 else [make_state(), menu, after]
+
+    memory = _FakeMemory(states)
+    monkeypatch.setattr(downwell_env, "attach", lambda: memory)
+
+    env = DownwellEnv(make_config(frame_skip=4))
+    env.reset()
+    env.step(ACTION_NONE)
+
+    memory.steps.clear()
+
+    env.step(action)
+
+    assert memory.steps == expected_inputs
 
 
 def test_an_upgrade_pick_reports_what_the_menu_offered(monkeypatch: pytest.MonkeyPatch):
@@ -171,3 +204,20 @@ def test_entering_a_side_room_is_reported_once(monkeypatch: pytest.MonkeyPatch):
 
     assert [info["entered_side_room"] for info in infos] == [True, False]
     assert all(info["in_side_room"] for info in infos)
+
+
+def test_a_shop_counts_once_entered_not_while_passing_it(monkeypatch: pytest.MonkeyPatch):
+    states = [
+        make_state(),
+        make_state(shop=1),
+        make_state(shop=1, in_side_room=1, room=9, gems=400),
+        make_state(shop=1, in_side_room=1, room=9, gems=100),
+    ]
+
+    env = _make_env(monkeypatch, states)
+    env.reset()
+
+    infos = [env.step(ACTION_NONE)[4] for _ in range(3)]
+
+    assert [info["entered_shop"] for info in infos] == [False, True, False]
+    assert [info["gems_spent"] for info in infos] == [0, 0, 300]

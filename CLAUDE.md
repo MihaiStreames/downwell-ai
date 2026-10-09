@@ -87,9 +87,9 @@ In `[tool.uv]`, always put `[[tool.uv.index]]` above `[tool.uv.sources]` (define
 
 Three separate jobs in `.github/workflows/ci.yml`:
 
-- `lint` - `ruff check`, `ruff format`, `ty check`
-- `test` - `pytest` (non-smoke)
-- `audit` - `uv audit`
+- `lint` -- `ruff check`, `ruff format`, `ty check`
+- `test` -- `pytest` (non-smoke)
+- `audit` -- `uv audit`
 
 All GitHub Actions are SHA-pinned with trailing tag comments. Use `scripts/pin-actions.sh` to update them.
 
@@ -112,9 +112,9 @@ win32 and linux only. No macOS.
 
 ```console
 DownwellError (base)
-├── FieldResolveError  -- all pointer chains for a game field failed
-├── StateLayoutError   -- snapshot record count impossible for layout.py (stale patch)
-└── GameTimeoutError   -- game stopped advancing / player never spawned within the deadline
+├── FieldResolveError -- all pointer chains for a game field failed
+├── StateLayoutError  -- snapshot record count impossible for layout.py (stale patch)
+└── GameTimeoutError  -- game stopped advancing / player never spawned within the deadline
 ```
 
 - `None` return for transient failures: game not running
@@ -123,16 +123,16 @@ DownwellError (base)
 
 ## Logging levels
 
-- `trace` - hot-path per-frame noise (pointer reads, memory reads)
-- `debug` - lifecycle events (attach, close, init)
-- `warning` - recoverable failures that self-resolve (game slow to release, will retry)
-- `error` - unexpected failures that degrade behavior but don't stop execution
-- `success` - meaningful milestones (first successful process attach)
+- `trace` -- hot-path per-frame noise (pointer reads, memory reads)
+- `debug` -- lifecycle events (attach, close, init)
+- `warning` -- recoverable failures that self-resolve (game slow to release, will retry)
+- `error` -- unexpected failures that degrade behavior but don't stop execution
+- `success` -- meaningful milestones (first successful process attach)
 - Never log the same failure at two layers -- log once at the site of the exception
 
 ## Training loop contract
 
-- `attach() -> None` - process not running; retry
+- `attach() -> None` -- process not running; retry
 - `FieldResolveError` / `StateLayoutError` raised from `read()` -- patch missing or stale; catch at loop level, clean shutdown
 - `GameTimeoutError` raised from `step()` / `reset()` -- game stopped answering in lockstep; catch at loop level, clean shutdown
 

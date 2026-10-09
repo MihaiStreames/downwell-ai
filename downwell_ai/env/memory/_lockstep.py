@@ -101,13 +101,14 @@ class Lockstep:
 
         Raises `GameTimeoutError` if the player does not spawn within `_RESET_TIMEOUT_SECONDS`.
         """
-        # the room change skips the rest of the reset frame, the game reports the step ready on the next one
+        # the room change skips the rest of the reset frame
+        # the game reports the step ready on the next one
         self._game.write_field("reset", 1)
 
         deadline = time.perf_counter() + _RESET_TIMEOUT_SECONDS
         state = self.step(0)
 
-        # the first frames can still carry the previous run's level, so wait for 1-1 too
+        # the first frames can still carry the previous run's level, wait for 1-1 too
         while not (state.room == _ROOM_MAIN and state.has_player and not state.death and state.area == 1 and state.level == 1):
             if time.perf_counter() > deadline:
                 waiting_for = "the player to spawn after reset"

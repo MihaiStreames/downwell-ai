@@ -9,6 +9,7 @@
 *.ico binary
 *.pth binary
 *.pyc binary
+*.pdf binary
 
 # python
 *.py text eol=lf
@@ -23,6 +24,9 @@
 *.csv text eol=lf
 *.md text eol=lf
 *.txt text eol=lf
+
+# docs, counted in the github language bar, which skips markup by default
+*.typ text eol=lf linguist-detectable
 
 # shell
 *.sh text eol=lf

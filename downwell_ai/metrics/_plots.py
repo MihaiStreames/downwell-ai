@@ -87,7 +87,6 @@ def _plot_run(axes: dict[str, Axes], name: str, records: list[Metrics], *, is_si
     _plot_binned(axes[_MEAN_Q], learning, lambda record: record.mean_q, name)
 
     has_hits = any(episode.hits for episode in training)
-    # every count is 0 in runs recorded before detours were, which would plot as a real "never"
     has_detours = any(episode.side_rooms or episode.shops or episode.upgrades for episode in training)
 
     if not is_single:

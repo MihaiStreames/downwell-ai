@@ -2,13 +2,15 @@
   <img src="assets/logo.png" alt="Downwell.AI" width="full"/>
 </p>
 
-[![Python](https://img.shields.io/badge/3.13-3572a5?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/3.14.5-3572a5?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-purple)](https://github.com/MihaiStreames/Downwell.AI)
 [![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 DQN agent for [Downwell](https://store.steampowered.com/app/360740/Downwell/).
 
-The agent plays the real game. A small GML script patched into `data.win` packs the game state into one buffer every step: the player and run state, plus every active instance the agent cares about (enemies, terrain, hazards, gems, pickups, its own shots). The Python side reads that state from process memory, holds keys to act, and wraps it all in a [Gymnasium](https://gymnasium.farama.org/) environment trained with Double DQN.
+<img src="assets/demo.gif" alt="The agent's view as it clears 2-1 and plays 2-2 in an evaluation run" align="right" width="240"/>
+
+The agent plays the real game. A small GML script patched into `data.win` packs the game state into one buffer every step: the player and run state, plus every active instance the agent cares about (enemies, terrain, hazards, gems, pickups, its own shots). The Python side reads that state from process memory, holds keys to act, and wraps it all in a [Gymnasium](https://gymnasium.farama.org/) environment trained with Double DQN. The gif is what the agent sees: its observation grid at the end of an evaluation run that got down to 2-2.
 
 ## Requirements
 
@@ -28,7 +30,7 @@ uv sync
 Patch the game (back up `data.win` first):
 
 ```sh
-uv run python scripts/gen_export.py  # writes the gml and the injector to scripts/generated/ (gitignored)
+uv run python scripts/gen_export.py  # writes the gml and the injector to scripts/generated/
 ```
 
 1. Open a clean `data.win` in UndertaleModTool
@@ -77,13 +79,7 @@ Each run writes to `runs/downwell-seed<seed>-<timestamp>/`:
 
 ## How it works
 
-- **Stepping:** the game runs in lockstep, each step holds the chosen buttons for `frame_skip` frames and the game waits for the next one; input and state go straight through memory, no keyboard or screen capture
-- **Episodes:** one per run, each starting fresh at 1-1. Death terminates, the step limit or 30 game seconds without new depth truncates, level clears pay a bonus and play on
-- **Observation:** a multi-channel grid over exactly what the game shows (solid, platforms, spikes, enemies split into stompable now / stompable by landing / hurting, hazards, gems, pickups, the player's shots, the player, water, side rooms), rasterized from every active instance's collision box; plus a vector of player motion, combat and progress, the owned upgrades, and the level-end menu and shop when open
-- **Actions:** none, jump, left, right, left + jump, right + jump; in the level-end upgrade menu and the shop the same buttons move the cursor and pick
-- **Reward:** new best depth (proportional, so bouncing earns nothing), gems, kills, combos (length squared when one ends), hits, death and level clears; coefficients live in the config's `[reward]` table
-- **Stomping:** which enemies are safe to land on comes from each enemy's own collision code, kept in `downwell_ai/env/downwell.toml` and evaluated live per frame (some only while the player falls, some only in a given state)
-- **Learning:** Double DQN on 3-step returns, so hits and level clears reach the actions behind them sooner
+The environment, reward and learning setup are being written up as a paper in [`docs/paper/main.typ`](docs/paper/main.typ) (TODO, a draft).
 
 ## Contributing
 

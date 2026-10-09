@@ -72,7 +72,7 @@ def main() -> None:
     proc = OpenProcess(name=_PROCESS)
     base = resolve_module_base(proc, _PROCESS)
     if base is None:
-        sys.exit("could not resolve module base - is the game running?")
+        sys.exit("could not resolve module base -- is the game running?")
 
     def u32(addr: int) -> int:
         return struct.unpack_from("<I", proc.read_process_memory(addr, bytes, 4))[0]
@@ -108,7 +108,7 @@ def main() -> None:
             control_key = key
 
     if magic_key is None or control_key is None:
-        sys.exit("dqn fingerprints not found - is the game running the data.win patched with InjectDQNExport.csx?")
+        sys.exit("dqn fingerprints not found -- is the game running the data.win patched with InjectDQNExport.csx?")
 
     # map keys run consecutively over the var ids that exist (any type but locals), the ids themselves have holes,
     # so count from the nearest fingerprint at or below
@@ -118,7 +118,7 @@ def main() -> None:
     def key_for(var_id: int) -> int:
         below = [(anchor_id, key) for anchor_id, key in anchors if anchor_id <= var_id]
         if not below:
-            sys.exit(f"var id {var_id} precedes every fingerprint - regenerate with scripts/gen_export.py and re-inject")
+            sys.exit(f"var id {var_id} precedes every fingerprint -- regenerate with scripts/gen_export.py and re-inject")
 
         anchor_id, key = below[-1]
         return key + rank[var_id] - rank[anchor_id]
@@ -153,7 +153,7 @@ FIELD_OFFSETS: Final[dict[str, int]] = {{
 
     print(f"wrote {_OUT}: {len(lines)} fields, map size {size}")
     if missing:
-        print(f"missing (not in the live map yet - start a run and rerun): {missing}")
+        print(f"missing (not in the live map yet -- start a run and rerun): {missing}")
 
 
 if __name__ == "__main__":

@@ -43,7 +43,9 @@ class Channel(IntEnum):
     SIDE_ROOM = 12
 
 
-# what the game shows in rmMain -- the grid covers exactly that view, so it truncates like the screen
+# what the game shows in rmMain
+# the grid covers exactly that view, so it truncates like the screen
+
 VIEW_W: Final[int] = 160
 VIEW_H: Final[int] = 284
 GRID_CELL_PX: Final[int] = 8
@@ -89,10 +91,11 @@ OBS_SPACE = Dict(
 
 _NOT_DRAWN: Final[int] = -1
 
-# what each object id is, as bits of a lookup table since this runs for every instance on every step
 _TERRAIN_HAZARD: Final[int] = 1
 _HAZARD: Final[int] = 2
 _PICKUP: Final[int] = 4
+
+# lookup table since this runs for every instance on every step
 _KIND_BY_OBJECT: Final[np.ndarray] = np.zeros(max(*TERRAIN_HAZARD_IDS, *HAZARD_IDS, *PICKUP_CATEGORY) + 1, dtype=np.uint8)
 for _ids, _kind in ((TERRAIN_HAZARD_IDS, _TERRAIN_HAZARD), (HAZARD_IDS, _HAZARD), (PICKUP_CATEGORY, _PICKUP)):
     _KIND_BY_OBJECT[list(_ids)] |= _kind
@@ -205,7 +208,7 @@ def encode_vector(state: MemoryState) -> np.ndarray:
         offers = menu[1 + OFFER_SLOTS :].reshape(OFFER_SLOTS, N_UPGRADES)
 
         for slot, upgrade in enumerate(state.offers[:OFFER_SLOTS]):
-            # unfilled offers read -1, and a failed roll leaves the game's placeholder 100
+            # unfilled offers read -1 and a failed roll leaves the game's placeholder 100
             if 0 <= upgrade < N_UPGRADES:
                 offers[slot, upgrade] = 1
 

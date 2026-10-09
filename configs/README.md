@@ -4,12 +4,12 @@ Train with `uv run downwell-train configs/default.toml`. There are no defaults i
 
 ## Speed and episodes
 
-| field                   | default | meaning                                                                                                                         |
-| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `headless`              | true    | skip drawing, vsync and audio while training; `false` to watch the agent play                                                   |
-| `frame_skip`            | 4       | game frames per decision, 15 decisions per game second                                                                          |
-| `max_episode_steps`     | 30000   | about 33 game minutes before the episode is truncated                                                                           |
-| `stall_timeout_seconds` | 30.0    | game seconds without new depth before the episode is truncated, paused in side rooms, shops and the upgrade menu; 0 disables it |
+| field                   | default | meaning                                                                                                                                   |
+| ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `headless`              | true    | skip drawing, vsync and audio while training; `false` to watch the agent play                                                             |
+| `frame_skip`            | 4       | game frames per decision, 15 decisions per game second                                                                                    |
+| `max_episode_steps`     | 30000   | about 33 game minutes before the episode is truncated                                                                                     |
+| `stall_timeout_seconds` | 30.0    | game seconds without new depth before the episode is truncated, paused in side rooms (shops included) and the upgrade menu; 0 disables it |
 
 The game runs in lockstep with the agent, as fast as the agent can step it, so speed never changes what the agent sees.
 

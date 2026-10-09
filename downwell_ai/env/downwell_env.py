@@ -11,6 +11,8 @@ from downwell_ai.config import TrainingConfig
 from downwell_ai.consts import ACTION_INPUTS
 from downwell_ai.consts import GAME_FPS
 from downwell_ai.consts import INPUT_JUMP
+from downwell_ai.consts import INPUT_LEFT
+from downwell_ai.consts import INPUT_RIGHT
 from downwell_ai.consts import N_ACTIONS
 from downwell_ai.env._game_data import UPGRADE_NAMES
 from downwell_ai.env._render import render_obs
@@ -18,6 +20,7 @@ from downwell_ai.env._reward import ProgressTracker
 from downwell_ai.env._reward import compute_reward
 from downwell_ai.env._reward import is_dead
 from downwell_ai.env._reward import is_level_complete
+from downwell_ai.env.memory import OFFER_SLOTS
 from downwell_ai.env.memory import Lockstep
 from downwell_ai.env.memory import MemoryState
 from downwell_ai.env.memory import attach
@@ -88,6 +91,7 @@ class DownwellEnv(Env[Observation, np.int64]):
     def _play_through_transition(self, game: Lockstep, state: MemoryState) -> MemoryState:
         # wait until play resumes or the upgrade menu wants a pick, which goes back to the agent
         frames = 0
+
         while not _is_playable(state) and not is_dead(state) and not state.menu:
             if frames >= _TRANSITION_TIMEOUT_FRAMES:
                 waiting_for = "the next level to load"
@@ -101,18 +105,32 @@ class DownwellEnv(Env[Observation, np.int64]):
 
         return state
 
-    def _act(self, game: Lockstep, previous: MemoryState, inputs: int) -> MemoryState:
-        if not previous.menu:
-            return game.step(inputs, repeat=self.__config.frame_skip)
+    def _pick_upgrade(self, game: Lockstep, menu: MemoryState, action: int) -> MemoryState:
+        # the whole pick is one decision: action n takes slot n, wrapping when there are fewer slots than actions
+        slots = max(sum(offer >= 0 for offer in menu.offers), 1)
+        target = action % slots
 
-        game.step(inputs)
+        state = menu
+        for _ in range(OFFER_SLOTS):
+            if state.cursor == target:
+                break
+            # the menu reacts to presses, one release frame lets the next one register
+            game.step(INPUT_RIGHT if state.cursor < target else INPUT_LEFT)
+            state = game.step(0)
+
+        game.step(INPUT_JUMP)
 
         return game.step(0, repeat=self.__config.frame_skip - 1) if self.__config.frame_skip > 1 else game.read()
 
+    def _act(self, game: Lockstep, previous: MemoryState, action: int) -> MemoryState:
+        if previous.menu:
+            return self._pick_upgrade(game, previous, action)
+
+        return game.step(ACTION_INPUTS[action], repeat=self.__config.frame_skip)
+
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[Observation, dict[str, Any]]:
         """Start a fresh run at level 1-1."""
-        # this only seeds np_random
-        super().reset(seed=seed, options=options)
+        super().reset(seed=seed, options=options)  # this only seeds np_random
         game = self._attach()
 
         state = game.reset()
@@ -134,7 +152,7 @@ class DownwellEnv(Env[Observation, np.int64]):
             msg = "step() called before reset()"
             raise RuntimeError(msg)
 
-        state = self._act(game, previous, ACTION_INPUTS[int(action)])
+        state = self._act(game, previous, int(action))
         if not state.has_player and not is_dead(state) and not state.menu:
             state = self._play_through_transition(game, state)
 
@@ -152,6 +170,9 @@ class DownwellEnv(Env[Observation, np.int64]):
             self.__offers = state.offers
 
         is_hit = state.hp < previous.hp
+        # the shop is a side room, and `shop` alone only means its counter is loaded nearby
+        is_in_shop = bool(state.in_side_room and state.shop)
+        was_in_shop = bool(previous.in_side_room and previous.shop)
         info: dict[str, Any] = {
             "reward_components": components,
             "area": state.area,
@@ -160,9 +181,8 @@ class DownwellEnv(Env[Observation, np.int64]):
             "is_hit": is_hit,
             "in_side_room": bool(state.in_side_room),
             "entered_side_room": bool(state.in_side_room and not previous.in_side_room),
-            "entered_shop": bool(state.shop and not previous.shop),
-            # outside a shop gems only ever grow
-            "gems_spent": max(previous.gems - state.gems, 0) if state.shop or previous.shop else 0,
+            "entered_shop": is_in_shop and not was_in_shop,
+            "gems_spent": max(previous.gems - state.gems, 0) if is_in_shop or was_in_shop else 0,
             "upgrade": None,
         }
 

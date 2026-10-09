@@ -36,7 +36,7 @@ uv run python -m pytest -m smoke -s  # needs the patched game running inside a r
 The patch and the reader share one layout, `downwell_ai/env/memory/layout.py`: header fields, record fields, family flags and the objects listed in `downwell_ai/env/downwell.toml`. After changing either:
 
 ```sh
-uv run python scripts/gen_export.py  # rewrites scripts/generated/ (gitignored)
+uv run python scripts/gen_export.py  # rewrites scripts/generated/
 ```
 
 Then re-inject `scripts/generated/InjectDQNExport.csx` into a clean `data.win`, start a run, and rerun `scripts/gen_ptrs.py` so `generated/game_ptrs.py` finds the patch's globals. Old checkpoints stop loading whenever the observation shape changes.

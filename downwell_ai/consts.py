@@ -14,7 +14,9 @@ ACTION_RIGHT: Final[int] = 3
 ACTION_LEFT_JUMP: Final[int] = 4
 ACTION_RIGHT_JUMP: Final[int] = 5
 
-# held buttons written to dqn_act, the game derives pressed/released edges itself
+# held buttons written to dqn_act
+# the game derives pressed/released edges itself
+
 INPUT_LEFT: Final[int] = 1
 INPUT_RIGHT: Final[int] = 2
 INPUT_JUMP: Final[int] = 4

@@ -16,7 +16,11 @@ from downwell_ai.metrics import EpisodeMetrics
 from downwell_ai.metrics import EpisodeTally
 from downwell_ai.metrics import Metrics
 from downwell_ai.utils.gif import save_gif
-from downwell_ai.utils.schedules import linear_schedule
+
+
+def _linear_schedule(start: float, end: float, duration: int, step: int) -> float:
+    progress = min(step / duration, 1.0)
+    return start + progress * (end - start)
 
 
 def _log_gif_failure(future: Future[None]) -> None:
@@ -70,10 +74,12 @@ def run_training(
     obs, _ = env.reset(seed=config.seed)
     tally, ep_count = EpisodeTally(), 0
 
-    # gif encoding is slow and unrelated to learning, one background worker keeps saves ordered
+    # gif encoding is slow and unrelated to learning
+    # one background worker keeps saves ordered
+
     with ThreadPoolExecutor(max_workers=1, thread_name_prefix="gif-writer") as gif_writer:
         for step in range(1, config.total_steps + 1):
-            eps = linear_schedule(eps_start, config.eps_end, config.exploration_steps, step)
+            eps = _linear_schedule(eps_start, config.eps_end, config.exploration_steps, step)
 
             action = agent.select_action(obs, eps)
             next_obs, reward, is_terminated, is_truncated, info = env.step(action)

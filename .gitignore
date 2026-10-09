@@ -282,3 +282,6 @@ runs/
 
 # patch build outputs, regenerate with scripts/gen_export.py
 scripts/generated/
+
+# compiled paper
+docs/paper/*.pdf

@@ -131,7 +131,7 @@ def test_time_off_the_level_outside_a_detour_counts_towards_the_stall_clock():
     assert tracker.seconds_since_best == pytest.approx(2.0)
 
 
-@pytest.mark.parametrize("detour", [{"in_side_room": 1, "room": 9}, {"shop": 1, "room": 9}, {"menu": 1, "room": 16}])
+@pytest.mark.parametrize("detour", [{"in_side_room": 1, "room": 9}, {"in_side_room": 1, "shop": 1, "room": 9}, {"menu": 1, "room": 16}])
 def test_side_rooms_shops_and_menus_pause_the_stall_clock(detour: dict[str, int]):
     tracker = ProgressTracker(make_state(room=7))
     tracker.update(make_state(room=7), frames=60)
@@ -139,6 +139,15 @@ def test_side_rooms_shops_and_menus_pause_the_stall_clock(detour: dict[str, int]
     tracker.update(make_state(**detour), frames=600)
 
     assert tracker.seconds_since_best == pytest.approx(1.0)
+
+
+def test_passing_a_shop_without_going_in_counts_towards_the_stall_clock():
+    tracker = ProgressTracker(make_state())
+    tracker.update(make_state(), frames=60)
+
+    tracker.update(make_state(shop=1), frames=60)
+
+    assert tracker.seconds_since_best == pytest.approx(2.0)
 
 
 def test_each_combo_increase_pays_a_kill():
