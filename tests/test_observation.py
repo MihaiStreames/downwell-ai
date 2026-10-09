@@ -10,18 +10,33 @@ from downwell_ai.env.memory import FLAG_SOLID
 from downwell_ai.env.memory import N_UPGRADES
 from downwell_ai.env.memory import OFFER_SLOTS
 from downwell_ai.env.memory import SHOP_SLOTS
+from downwell_ai.env.memory import MemoryState
+from downwell_ai.env.observation import FRAME_SHAPE
 from downwell_ai.env.observation import GRID_CELL_PX
 from downwell_ai.env.observation import GRID_SHAPE
+from downwell_ai.env.observation import MOTION_CHANNELS
 from downwell_ai.env.observation import VEC_MENU
 from downwell_ai.env.observation import VEC_SHOP
 from downwell_ai.env.observation import Channel
+from downwell_ai.env.observation import ObservationEncoder
 from downwell_ai.env.observation import encode_grid
-from downwell_ai.env.observation import encode_obs
 from downwell_ai.env.observation import encode_vector
 
 
-SNAKE, SHOPKEEPER, SKELETON = 111, 284, 120  # stomp rules: yes, no, falling
 SPIKE, BULLET, GEM = 97, 105, 248
+
+
+def _hazard_at(column: int, **state: int) -> MemoryState:
+    bullet = make_row(BULLET, FLAG_LISTED, (column * GRID_CELL_PX, 200, column * GRID_CELL_PX + 7, 207))
+    return make_state(has_player=0, instances=make_rows(bullet), **state)
+
+
+def _hazard_columns(grid: np.ndarray, steps_ago: int) -> list[int]:
+    channel = len(Channel) + (steps_ago - 1) * len(MOTION_CHANNELS) + MOTION_CHANNELS.index(Channel.HAZARD) if steps_ago else Channel.HAZARD
+    return np.flatnonzero(grid[channel].any(axis=0)).tolist()
+
+
+SNAKE, SHOPKEEPER, SKELETON = 111, 284, 120  # stomp rules: yes, no, falling
 
 
 def test_a_wall_box_fills_exactly_the_cells_it_covers():
@@ -128,8 +143,34 @@ def test_render_draws_the_menu_at_the_same_size_as_play():
     menu = make_state(has_player=0, menu=1, cursor=1, offers=[13, 6, 9, -1])
     play = make_state()
 
-    assert render_obs(encode_obs(menu)).shape == render_obs(encode_obs(play)).shape
+    assert render_obs(ObservationEncoder().encode(menu)).shape == render_obs(ObservationEncoder().encode(play)).shape
 
 
 def test_grid_matches_the_declared_shape():
-    assert encode_grid(make_state()).shape == GRID_SHAPE
+    assert encode_grid(make_state()).shape == FRAME_SHAPE
+    assert ObservationEncoder().encode(make_state())["grid"].shape == GRID_SHAPE
+
+
+def test_the_past_frames_show_where_a_moving_hazard_was():
+    encoder = ObservationEncoder()
+    for column in (0, 1):
+        encoder.encode(_hazard_at(column))
+
+    grid = encoder.encode(_hazard_at(2))["grid"]
+
+    assert [_hazard_columns(grid, steps_ago) for steps_ago in (0, 1, 2)] == [[2], [1], [0]]
+
+
+def test_the_first_frame_repeats_the_present_as_its_past():
+    grid = ObservationEncoder().encode(_hazard_at(3))["grid"]
+
+    assert [_hazard_columns(grid, steps_ago) for steps_ago in (0, 1, 2)] == [[3], [3], [3]]
+
+
+def test_a_new_level_forgets_the_previous_level_frames():
+    encoder = ObservationEncoder()
+    encoder.encode(_hazard_at(0, level=1))
+
+    grid = encoder.encode(_hazard_at(5, level=2))["grid"]
+
+    assert _hazard_columns(grid, 1) == [5]

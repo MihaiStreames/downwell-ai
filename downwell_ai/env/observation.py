@@ -1,3 +1,4 @@
+from collections import deque
 from enum import IntEnum
 from typing import Final
 
@@ -48,10 +49,17 @@ class Channel(IntEnum):
 
 VIEW_W: Final[int] = 160
 VIEW_H: Final[int] = 284
+
 GRID_CELL_PX: Final[int] = 8
 GRID_W: Final[int] = VIEW_W // GRID_CELL_PX
 GRID_H: Final[int] = -(-VIEW_H // GRID_CELL_PX)
-GRID_SHAPE: Final[tuple[int, int, int]] = (len(Channel), GRID_H, GRID_W)
+
+FRAME_SHAPE: Final[tuple[int, int, int]] = (len(Channel), GRID_H, GRID_W)
+
+MOTION_CHANNELS: Final[tuple[Channel, ...]] = (Channel.STOMP_NOW, Channel.STOMP_FROM_ABOVE, Channel.HURTS, Channel.HAZARD)
+MOTION_HISTORY: Final[int] = 2
+
+GRID_SHAPE: Final[tuple[int, int, int]] = (len(Channel) + MOTION_HISTORY * len(MOTION_CHANNELS), GRID_H, GRID_W)
 
 _PLAYER_HEIGHT_PX: Final[float] = 16.0
 
@@ -145,8 +153,8 @@ def _paint(grid: np.ndarray, channel: Channel, box: tuple[float, float, float, f
 
 
 def encode_grid(state: MemoryState) -> np.ndarray:
-    """Rasterize every kept instance's collision box over the game's view into `GRID_SHAPE` channels."""
-    grid = np.zeros(GRID_SHAPE, dtype=np.uint8)
+    """Rasterize every kept instance's collision box over the game's view into one `FRAME_SHAPE` frame."""
+    grid = np.zeros(FRAME_SHAPE, dtype=np.uint8)
     view_x, view_y, view_w, _ = state.view
     if view_w <= 0:
         return grid
@@ -226,6 +234,29 @@ def encode_vector(state: MemoryState) -> np.ndarray:
     return vec
 
 
-def encode_obs(state: MemoryState) -> dict[str, np.ndarray]:
-    """Build the observation matching `OBS_SPACE`."""
-    return {"grid": encode_grid(state), "vec": encode_vector(state)}
+class ObservationEncoder:
+    """Build observations matching `OBS_SPACE`, with the moving channels of the last `MOTION_HISTORY` steps after the current frame."""
+
+    def __init__(self) -> None:
+        self.__history: deque[np.ndarray] = deque(maxlen=MOTION_HISTORY)
+        self.__place: tuple[int, int, int, int] | None = None
+
+    def reset(self) -> None:
+        """Forget the past frames, for a new episode."""
+        self.__history.clear()
+        self.__place = None
+
+    def encode(self, state: MemoryState) -> dict[str, np.ndarray]:
+        """Encode `state` on top of the frames seen since the view last jumped."""
+        place = (state.area, state.level, state.room, state.in_side_room)
+        if place != self.__place:
+            self.__history.clear()
+            self.__place = place
+
+        frame = encode_grid(state)
+        motion = frame[list(MOTION_CHANNELS)]
+
+        past = [*self.__history, *[motion] * (MOTION_HISTORY - len(self.__history))]
+        self.__history.appendleft(motion)
+
+        return {"grid": np.concatenate([frame, *past]), "vec": encode_vector(state)}

@@ -25,7 +25,7 @@ from downwell_ai.env.memory import Lockstep
 from downwell_ai.env.memory import MemoryState
 from downwell_ai.env.memory import attach
 from downwell_ai.env.observation import OBS_SPACE
-from downwell_ai.env.observation import encode_obs
+from downwell_ai.env.observation import ObservationEncoder
 from downwell_ai.utils.exceptions import GameTimeoutError
 
 
@@ -62,6 +62,7 @@ class DownwellEnv(Env[Observation, np.int64]):
         self.__game: Lockstep | None = None
 
         self.__progress: ProgressTracker | None = None
+        self.__encoder = ObservationEncoder()
 
         self.__prev: MemoryState | None = None
         self.__obs: Observation | None = None
@@ -141,7 +142,8 @@ class DownwellEnv(Env[Observation, np.int64]):
         self.__step_count = 0
         self.__level_start_step = 0
         self.__offers = []
-        self.__obs = encode_obs(state)
+        self.__encoder.reset()
+        self.__obs = self.__encoder.encode(state)
 
         return self.__obs, {"area": state.area, "level": state.level}
 
@@ -201,7 +203,7 @@ class DownwellEnv(Env[Observation, np.int64]):
                 info["upgrade"] = {"area": previous.area, "level": previous.level, "offered": offered, "picked": UPGRADE_NAMES[upgrade]}
                 self.__offers = []
 
-        self.__obs = encode_obs(state)
+        self.__obs = self.__encoder.encode(state)
 
         return self.__obs, reward, terminated, truncated, info
 

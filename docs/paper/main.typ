@@ -45,7 +45,7 @@ An episode is one run, starting fresh at 1-1. Death terminates it; the step limi
 
 == Observation
 
-A multi-channel grid over exactly what the game shows, rasterized from every active instance's collision box: solid terrain, platforms, spikes, enemies split into stompable now, stompable by landing and hurting, hazards, gems, pickups, the player's shots, the player, water and side rooms. Alongside it, a vector of player motion, combat and progress, the owned upgrades, and the level-end menu and the shop when open.
+A multi-channel grid over exactly what the game shows, rasterized from every active instance's collision box: solid terrain, platforms, spikes, enemies split into stompable now, stompable by landing and hurting, hazards, gems, pickups, the player's shots, the player, water and side rooms. The moving channels (both stompable kinds, hurting and hazards) are repeated from the previous two steps, newest first, so the network sees where things move and not only where they are; a step is 4 game frames and a cell 8 px, so a slow enemy needs two past steps to cross a cell. Alongside the grid, a vector of player motion, combat and progress, the owned upgrades, and the level-end menu and the shop when open.
 
 #todo[grid size and cell size, the vector layout, a figure of one rendered observation]
 
