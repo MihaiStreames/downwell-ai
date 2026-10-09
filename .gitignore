@@ -270,3 +270,15 @@ __marimo__/
 old/
 insp/
 models/
+
+### Training ###
+runs/
+*.pt
+
+### Game ###
+# patched or backed-up game data, never redistribute
+*.win
+*.win.bak
+
+# patch build outputs, regenerate with scripts/gen_export.py
+scripts/generated/

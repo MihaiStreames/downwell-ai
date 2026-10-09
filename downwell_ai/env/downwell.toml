@@ -1,0 +1,173 @@
+# downwell objects the agent knows about, read by downwell_ai/env/_game_data.py and scripts/gen_export.py
+# keys are the game's object names, ids its object indices in data.win
+# identified from data.win sprite names, the decompiled code and the downwell wiki
+
+[upgrades]
+# position is the id the game uses (scrUpgrades), names from its language.ini
+# dumbbell, super charge and sudden fortune are never offered
+names = [
+  "blast module",
+  "reverse engineering",
+  "dumbbell",
+  "rest in pieces",
+  "gem powered",
+  "gunpowder blocks",
+  "youth",
+  "candle",
+  "hot casing",
+  "drone",
+  "gem attractor",
+  "knife and fork",
+  "laser sight",
+  "apple",
+  "member's card",
+  "heart balloon",
+  "popping gems",
+  "timeout",
+  "rocket jump",
+  "super charge",
+  "gem sick",
+  "sudden fortune",
+  "safety jetpack",
+]
+
+# how safe an enemy is to land on: yes, conditional (only in some states) or no; enemies missing here count as no
+[enemies]
+enemyTemplate     = { id = 104, stomp = "yes" }
+FINALBOSS         = { id = 108, stomp = "no" }         # no stomp at all
+enmSnake          = { id = 111, stomp = "yes" }
+enmGroundTurtle   = { id = 112, stomp = "yes" }
+enmFrog           = { id = 113, stomp = "yes" }
+enmEyefish        = { id = 114, stomp = "yes" }        # handler stomps whenever it sits below the player (typStompable, by its yy)
+enmWhiteJelly     = { id = 115, stomp = "yes" }
+enmBat            = { id = 116, stomp = "yes" }
+enmSnail          = { id = 117, stomp = "no" }
+enmRedBall        = { id = 118, stomp = "no" }
+enmCrawler        = { id = 119, stomp = "no" }
+enmSkeleton       = { id = 120, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmObake          = { id = 121, stomp = "yes" }
+gasChaser         = { id = 122, stomp = "no" }
+gasWander         = { id = 123, stomp = "when_white" } # stomped only while white
+enmWanderSkull    = { id = 124, stomp = "when_calm" }  # stomped, but once angry the same contact also hurts
+enmVfrog          = { id = 125, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmJumpySkull     = { id = 126, stomp = "yes" }
+subparentGas      = { id = 127, stomp = "no" }         # no stomp at all
+enmMohawkmon      = { id = 128, stomp = "no" }
+enmTurtle         = { id = 129, stomp = "yes" }
+enmRedJelly       = { id = 130, stomp = "yes" }
+enmJellofish      = { id = 131, stomp = "yes" }        # handler stomps whenever it sits below the player (typStompable, by its yy)
+enmSquid          = { id = 132, stomp = "yes" }        # handler stomps whenever it sits below the player (typStompable, by its yy)
+enmCrawlbot       = { id = 134, stomp = "yes" }
+enmNbar           = { id = 135, stomp = "yes" }
+enmDodger         = { id = 136, stomp = "yes" }
+swarm             = { id = 137, stomp = "no" }         # no stomp at all
+enmDodgeshot      = { id = 138, stomp = "yes" }
+enmLeapon         = { id = 139, stomp = "yes" }
+enmTwinbot        = { id = 140, stomp = "no" }
+enmFriends        = { id = 141, stomp = "no" }
+enmAscend         = { id = 143, stomp = "yes" }
+enmAngryFace      = { id = 144, stomp = "yes" }
+enmUpshoot        = { id = 145, stomp = "yes" }
+enmLunger         = { id = 146, stomp = "yes" }
+gasDescend        = { id = 147, stomp = "no" }
+neonFloat         = { id = 148, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+gasDescendSlow    = { id = 149, stomp = "no" }
+gasBounce         = { id = 150, stomp = "no" }
+gasCircle         = { id = 151, stomp = "no" }
+enmSporeSpawn     = { id = 152, stomp = "yes" }
+enmSamball        = { id = 154, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmStraightBall   = { id = 155, stomp = "no" }
+enmBug            = { id = 156, stomp = "no" }
+guntleBubble      = { id = 157, stomp = "yes" }
+gasDescendFast    = { id = 158, stomp = "no" }
+gasAscendFast     = { id = 159, stomp = "no" }
+gasStraightBounce = { id = 160, stomp = "no" }
+gasSpin           = { id = 161, stomp = "no" }
+asdf              = { id = 163, stomp = "no" }
+gasAscend2        = { id = 164, stomp = "no" }
+limboChaser       = { id = 165, stomp = "no" }
+gasAscend         = { id = 166, stomp = "no" }
+gasChaserDodge    = { id = 167, stomp = "no" }
+limboWander       = { id = 168, stomp = "no" }
+testAscDesc       = { id = 169, stomp = "no" }
+gasWanderUp       = { id = 170, stomp = "no" }
+neonBat           = { id = 171, stomp = "yes" }
+neonJelly         = { id = 172, stomp = "yes" }
+neonRedBall       = { id = 173, stomp = "no" }
+neonObake         = { id = 174, stomp = "yes" }
+neonGasChaser     = { id = 175, stomp = "no" }
+neonSkull         = { id = 176, stomp = "yes" }
+neonMohawk        = { id = 177, stomp = "no" }
+neonSquid         = { id = 178, stomp = "yes" }
+neonRedJelly      = { id = 179, stomp = "yes" }
+enmShooter        = { id = 180, stomp = "yes" }
+Mine              = { id = 181, stomp = "no" }
+enmXchaser        = { id = 182, stomp = "yes" }
+enmFlamewisp      = { id = 183, stomp = "yes" }
+enmJellyAir       = { id = 184, stomp = "yes" }
+enmGateTurret     = { id = 185, stomp = "yes" }
+enmGuntle         = { id = 186, stomp = "yes" }
+enmWallCrawler    = { id = 189, stomp = "yes" }
+enmSTG1           = { id = 191, stomp = "yes" }
+enmGatherer       = { id = 192, stomp = "no" }
+enmFishred        = { id = 193, stomp = "no" }
+enmUnichan        = { id = 194, stomp = "no" }
+enmPoofer         = { id = 195, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmTadpole        = { id = 196, stomp = "no" }
+enmFishredWander  = { id = 197, stomp = "no" }
+enmBabyObake      = { id = 198, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmSkullSoul      = { id = 199, stomp = "no" }
+enmRat            = { id = 200, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmTentacleye     = { id = 201, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+testenm           = { id = 202, stomp = "no" }
+enmDarksoulW      = { id = 203, stomp = "no" }
+enmSpider         = { id = 204, stomp = "yes" }
+enmFirebat        = { id = 205, stomp = "yes" }
+enmDarkWander     = { id = 206, stomp = "no" }
+enmDownSkull      = { id = 207, stomp = "yes" }
+enmTentacrab      = { id = 208, stomp = "falling" }    # handler stomps only while the player is airborne and falling
+enmDskull         = { id = 209, stomp = "yes" }
+enmWallLurker     = { id = 210, stomp = "yes" }
+shopKeeperEnemy   = { id = 284, stomp = "no" }
+
+# moving player-hurting objects outside subparentEnemy (from the Collision_objPlayer_n events), exported in hazard slots
+[hazards]
+enmbul1         = { id = 105 }
+enmBulRanged    = { id = 106 }
+bossLargeBullet = { id = 107 }
+enemyBulletAni  = { id = 268 }
+bulletEnmBone   = { id = 269 }
+pooferBullet    = { id = 142 }
+squidInk        = { id = 133 }
+Spore           = { id = 153 }
+bossTentacle    = { id = 110 }
+TorchFire       = { id = 295 }
+
+# hazards fixed to the terrain, exported as their own grid channel so a row of spikes never fills the hazard slots
+[terrain_hazards]
+objSpike_n = { id = 97 }
+spikeTrap  = { id = 102 }
+coralSpike = { id = 298 }
+
+# reasons to leave the straight way down; category is health, charge, module, gem_source, side_room or shop
+# an entry with a parent is not exported itself, the exporter's with() on the parent already covers its instances
+[pickups]
+Heal1                 = { id = 251, category = "health" }                                # heart from a gun module or a 25 combo
+TomatoObtainable      = { id = 252, category = "health" }                                # +10 hp in the abyss side room
+BatteryCharge         = { id = 250, category = "charge" }                                # +max charge from a gun module or a 15 combo
+GunModule             = { id = 109, category = "module" }                                # new weapon plus a heart and a battery
+objObtainableUg       = { id = 283, category = "module" }
+objObtainableUgRandom = { id = 286, category = "module", parent = "objObtainableUg" }
+Crate                 = { id = 254, category = "module" }                                # the gun module container in safe zones
+objGemSphere          = { id = 292, category = "gem_source" }                            # gem vein in safe zones, ~120 gems
+gemChunk              = { id = 293, category = "gem_source" }                            # colored gem block
+parentTimeField       = { id = 82, category = "side_room" }                              # never placed itself, exporting it covers both bubbles
+goalTimeField         = { id = 255, category = "side_room", parent = "parentTimeField" } # the time void bubble around a safe zone
+startTimeField        = { id = 371, category = "side_room", parent = "goalTimeField" }
+Shop                  = { id = 277, category = "shop" }                                  # the counter, jumping next to it starts a purchase
+shopCase              = { id = 279, category = "shop" }                                  # the item cases behind the shopkeeper
+
+# kept objects outside every table above, exported because the agent should see them
+[extras]
+objCurrency = { id = 248 } # a loose gem
+objDrone    = { id = 249 } # the drone upgrade, shoots for the player

@@ -1,91 +1,98 @@
-from src.agent.replay import ReplayBuffer
-from src.consts import ACTION_BUFFER_DIM
-from src.consts import FRAME_STACK
-from src.consts import IMAGE_HEIGHT
-from src.consts import IMAGE_WIDTH
-from src.consts import RAM_DIM
+import pytest
 import torch
 
-from conftest import rand_acts
-from conftest import rand_img
-from conftest import rand_ram
+from conftest import rand_grid
+from conftest import rand_vec
+from downwell_ai.agent import NStepCollector
+from downwell_ai.agent import ReplayBuffer
 
 
-# from src.agent.network import DQN
+_CAPACITY = 20
 
 
-_BATCH = 4
-_CAP = 20
+def _obs() -> dict:
+    return {"grid": rand_grid(), "vec": rand_vec()}
 
 
-def _filled(n: int = _CAP) -> ReplayBuffer:
-    buf = ReplayBuffer(capacity=_CAP)
-    for _ in range(n):
-        buf.add(img=rand_img(), ram=rand_ram(), acts_buf=rand_acts(), action=0, reward=1.0, done=False)
-
-    return buf
+def _push(buf: ReplayBuffer, action: int = 0) -> None:
+    buf.push(_obs(), action, 0.0, _obs(), discount=0.99)
 
 
-def test_size_grows_to_capacity():
-    buf = ReplayBuffer(capacity=_CAP)
-    for i in range(_CAP + 5):
-        buf.add(img=rand_img(), ram=rand_ram(), acts_buf=rand_acts(), action=0, reward=0.0, done=False)
-        assert buf.size == min(i + 1, _CAP)
+def test_partially_filled_buf_never_samples_empty_slots():
+    buf = ReplayBuffer(_CAPACITY, seed=0)
+    _push(buf, action=3)
+
+    batch = buf.sample(64)
+
+    assert torch.all(batch.actions == 3)
 
 
-def test_sample_returns_none_when_not_enough():
-    buf = ReplayBuffer(capacity=_CAP)
-    for _ in range(_BATCH):  # need batch_size + 1
-        buf.add(img=rand_img(), ram=rand_ram(), acts_buf=rand_acts(), action=0, reward=0.0, done=False)
+def test_full_buf_overwrites_the_oldest_transition():
+    buf = ReplayBuffer(_CAPACITY, seed=0)
+    _push(buf, action=1)
 
-    assert buf.sample(_BATCH) is None
+    for _ in range(_CAPACITY):
+        _push(buf, action=2)
 
+    batch = buf.sample(256)
 
-def test_sample_tensor_shapes():
-    batch = _filled().sample(_BATCH)
-    assert batch is not None
-
-    imgs, next_imgs, rams, next_rams, acts, next_acts, actions, rewards, dones = batch
-
-    assert imgs.shape == (_BATCH, FRAME_STACK, IMAGE_HEIGHT, IMAGE_WIDTH)
-    assert next_imgs.shape == (_BATCH, FRAME_STACK, IMAGE_HEIGHT, IMAGE_WIDTH)
-
-    assert rams.shape == (_BATCH, RAM_DIM)
-    assert next_rams.shape == (_BATCH, RAM_DIM)
-
-    assert acts.shape == (_BATCH, ACTION_BUFFER_DIM)
-    assert next_acts.shape == (_BATCH, ACTION_BUFFER_DIM)
-
-    assert actions.shape == (_BATCH,)
-    assert rewards.shape == (_BATCH,)
-    assert dones.shape == (_BATCH,)
+    assert torch.all(batch.actions == 2)
 
 
-def test_sample_dtypes():
-    batch = _filled().sample(_BATCH)
-    assert batch is not None
+def test_next_obs_belongs_to_the_same_transition():
+    buf = ReplayBuffer(_CAPACITY, seed=0)
+    first, second, unrelated = _obs(), _obs(), _obs()
+    buf.push(first, 1, 0.5, second, discount=0.0)
+    # a following transition from another episode must not leak into the first one's next observation
+    buf.push(unrelated, 2, 0.0, unrelated, discount=0.99)
 
-    imgs, _, rams, _, acts, _, actions, rewards, dones = batch
+    batch = buf.sample(64)
+    rows = batch.actions == 1
 
-    assert imgs.dtype == torch.uint8
-    assert rams.dtype == torch.float32
-    assert acts.dtype == torch.float32
-
-    assert actions.dtype == torch.int64
-    assert rewards.dtype == torch.float32
-    assert dones.dtype == torch.bool
+    assert torch.equal(batch.next_vecs[rows][0], torch.from_numpy(second["vec"]))
+    assert torch.all(batch.discounts[rows] == 0.0)
 
 
-# def test_shapes_match_network_forward():
-#     net = DQN()
-#     net.eval()
-#
-#     batch = _filled().sample(_BATCH)
-#     assert batch is not None
-#
-#     imgs, _, rams, _, acts, _, _, _, _ = batch
-#
-#     with torch.no_grad():
-#         q = net(imgs, rams, acts)
-#
-#     assert q.shape == (_BATCH, NUM_ACTIONS)
+def test_grids_come_back_exactly_as_pushed():
+    buf = ReplayBuffer(_CAPACITY, seed=0)
+    obs, next_obs = _obs(), _obs()
+    buf.push(obs, 0, 0.0, next_obs, discount=0.99)
+
+    batch = buf.sample(1)
+
+    assert torch.equal(batch.grids[0], torch.from_numpy(obs["grid"]))
+    assert torch.equal(batch.next_grids[0], torch.from_numpy(next_obs["grid"]))
+
+
+def _collect(rewards: list[float], *, is_terminated: bool, is_truncated: bool = False) -> dict[int, tuple[float, float]]:
+    """Feed one episode with action i at step i through a 3-step collector, returning each action's (reward, discount)."""
+    buf = ReplayBuffer(_CAPACITY, seed=0)
+    collector = NStepCollector(buf, n_steps=3, gamma=0.5)
+
+    for action, reward in enumerate(rewards):
+        is_last = action == len(rewards) - 1
+        collector.add(_obs(), action, reward, _obs(), is_terminated=is_last and is_terminated, is_truncated=is_last and is_truncated)
+
+    batch = buf.sample(256)
+    return {int(a): (float(r), float(d)) for a, r, d in zip(batch.actions, batch.rewards, batch.discounts, strict=True)}
+
+
+def test_n_step_reward_sums_the_next_n_rewards_discounted():
+    transitions = _collect([1.0, 2.0, 4.0, 8.0, 0.0], is_terminated=False, is_truncated=True)
+
+    assert transitions[0] == pytest.approx((1.0 + 0.5 * 2.0 + 0.25 * 4.0, 0.125))
+    assert transitions[1] == pytest.approx((2.0 + 0.5 * 4.0 + 0.25 * 8.0, 0.125))
+
+
+def test_episode_end_flushes_shorter_spans_and_death_never_bootstraps():
+    transitions = _collect([1.0, 2.0, 4.0, 8.0], is_terminated=True)
+
+    assert transitions[2] == pytest.approx((4.0 + 0.5 * 8.0, 0.0))
+    assert transitions[3] == pytest.approx((8.0, 0.0))
+
+
+def test_truncation_flushes_shorter_spans_that_still_bootstrap():
+    transitions = _collect([1.0, 2.0, 4.0, 8.0], is_terminated=False, is_truncated=True)
+
+    assert transitions[2] == pytest.approx((4.0 + 0.5 * 8.0, 0.25))
+    assert transitions[3] == pytest.approx((8.0, 0.5))

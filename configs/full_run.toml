@@ -1,0 +1,39 @@
+# see configs/README.md for what each value does
+
+seed        = 1
+total_steps = 5_000_000
+
+headless              = true
+frame_skip            = 4
+max_episode_steps     = 30_000
+stall_timeout_seconds = 30.0
+
+learning_rate          = 1e-4
+gamma                  = 0.995
+n_steps                = 3
+batch_size             = 128
+buf_cap                = 500_000
+learning_starts        = 20_000
+train_frequency        = 4
+target_update_interval = 4_000
+max_grad_norm          = 10.0
+
+eps_start         = 1.0
+eps_end           = 0.05
+resume_eps_start  = 0.3
+exploration_steps = 400_000
+
+eval_interval_episodes = 25
+eval_eps               = 0.02
+
+[reward]
+depth_reward  = 0.003
+gem_reward    = 0.02
+hit_penalty   = -2.5
+heal_reward   = 2.5
+ammo_reward   = 1.0
+death_penalty = -5.0
+level_reward  = 10.0
+kill_reward   = 0.5
+combo_reward  = 0.05
+scale         = 1.0

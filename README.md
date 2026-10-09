@@ -4,16 +4,94 @@
 
 [![Python](https://img.shields.io/badge/3.13-3572a5?logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-purple)](https://github.com/MihaiStreames/Downwell.AI)
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 [![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 DQN agent for [Downwell](https://store.steampowered.com/app/360740/Downwell/).
 
+The agent plays the real game. A small GML script patched into `data.win` packs the game state into one buffer every step: the player and run state, plus every active instance the agent cares about (enemies, terrain, hazards, gems, pickups, its own shots). The Python side reads that state from process memory, holds keys to act, and wraps it all in a [Gymnasium](https://gymnasium.farama.org/) environment trained with Double DQN.
+
+## Requirements
+
+- Downwell (Steam), Windows or Linux
+- [uv](https://docs.astral.sh/uv/)
+- [UndertaleModTool](https://github.com/UnderminersTeam/UndertaleModTool) to patch `data.win`
+- An NVIDIA GPU is optional, training falls back to CPU
+
+## Setup
+
+Install dependencies:
+
+```sh
+uv sync
+```
+
+Patch the game (back up `data.win` first):
+
+```sh
+uv run python scripts/gen_export.py  # writes the gml and the injector to scripts/generated/ (gitignored)
+```
+
+1. Open a clean `data.win` in UndertaleModTool
+2. `Scripts > Run other script...` and pick `scripts/generated/InjectDQNExport.csx`
+3. `File > Save`, then launch the game and start a run
+4. `DOWNWELL_DATA_WIN="path/to/data.win" uv run python scripts/gen_ptrs.py` to point the reader at the patch's globals
+
+Run the injector once on a clean `data.win`, it appends code. The snapshot layout lives in `downwell_ai/env/memory/layout.py`: the patch is generated from it and the reader parses with it. After changing it, regenerate, re-inject on a clean `data.win` and rerun `gen_ptrs.py`.
+
+## Usage
+
+Start the patched game (any screen, the agent takes over input and resets runs itself), then:
+
+```sh
+uv run downwell-train configs/default.toml                               # 1M steps, every field is required, see configs/README.md
+uv run downwell-train configs/long_run.toml                              # the same over 2.5M steps
+uv run downwell-train configs/full_run.toml                              # the same over 5M steps
+uv run downwell-train configs/default.toml --rendered                    # keep drawing to watch the agent play
+uv run downwell-train configs/default.toml --resume runs/<run>/model.pt  # keep training a model into a new run
+```
+
+Play a trained model (reads the run's `config.json` next to it):
+
+```sh
+uv run downwell-play runs/<run>/model.pt                           # watch 3 episodes at real game speed
+uv run downwell-play runs/<run>/model.pt --episodes 20 --headless  # measure it as fast as possible
+```
+
+Plot training curves (written automatically when a run finishes):
+
+```sh
+uv run downwell-plot runs/<run>                 # plots.png in the run, with reward terms and hits
+uv run downwell-plot runs/<run-a> runs/<run-b>  # overlay runs into runs/comparison.png
+```
+
+Each run writes to `runs/downwell-seed<seed>-<timestamp>/`:
+
+| file            | contents                                                      |
+| --------------- | ------------------------------------------------------------- |
+| `config.json`   | the exact config used                                         |
+| `training.log`  | lifecycle events, level clears, upgrades and hits             |
+| `metrics.jsonl` | per-episode return, depth, reward terms and hits              |
+| `plots.png`     | training curves, see `downwell-plot`                          |
+| `eval-*.gif`    | periodic evaluation episodes, drawn from the agent's own view |
+| `model.pt`      | weights of the best evaluation episode                        |
+
+## How it works
+
+- **Stepping:** the game runs in lockstep, each step holds the chosen buttons for `frame_skip` frames and the game waits for the next one; input and state go straight through memory, no keyboard or screen capture
+- **Episodes:** one per run, each starting fresh at 1-1. Death terminates, the step limit or 30 game seconds without new depth truncates, level clears pay a bonus and play on
+- **Observation:** a multi-channel grid over exactly what the game shows (solid, platforms, spikes, enemies split into stompable now / stompable by landing / hurting, hazards, gems, pickups, the player's shots, the player, water, side rooms), rasterized from every active instance's collision box; plus a vector of player motion, combat and progress, the owned upgrades, and the level-end menu and shop when open
+- **Actions:** none, jump, left, right, left + jump, right + jump; in the level-end upgrade menu and the shop the same buttons move the cursor and pick
+- **Reward:** new best depth (proportional, so bouncing earns nothing), gems, kills, combos (length squared when one ends), hits, death and level clears; coefficients live in the config's `[reward]` table
+- **Stomping:** which enemies are safe to land on comes from each enemy's own collision code, kept in `downwell_ai/env/downwell.toml` and evaluated live per frame (some only while the player falls, some only in a given state)
+- **Learning:** Double DQN on 3-step returns, so hits and level clears reach the actions behind them sooner
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
-> [!NOTE]
-> This project is dual licensed under [MIT](LICENSE-MIT) and [Apache 2.0](LICENSE-APACHE).
-> You may use either license at your option. Consider reading both before modifying or redistributing.
+This project is licensed under the [MIT License](LICENSE).
 
 <div align="center">
   Made with ❤️

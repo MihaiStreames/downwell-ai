@@ -1,76 +1,78 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
+
 [project]
 name = "downwell-ai"
-version = "0.1.0rc"
+version = "1.0.0"
 description = "DQN agent for Downwell."
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+license = "MIT"
+requires-python = ">=3.13"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
 ]
 dependencies = [
   "gymnasium>=1.3.0",
   "loguru>=0.7.3",
-  "msgspec>=0.21.1",
-  "numpy>=2.4.4",
-  "opencv-python>=4.13.0.92",
-  "pymemoryeditor>=1.6.0",
-  "rtgym>=0.16",
-  "tensorboard>=2.20.0",
-  "torch==2.9.1",
-  "torchvision==0.24.1",
+  "matplotlib>=3.11.2",
+  "msgspec>=0.22.0",
+  "numpy>=2.5.3",
+  "pillow>=12.3.0",
+  "pymemoryeditor>=3.0.1",
+  "rich>=15.0.0",
+  "torch>=2.14.1",
+  "typer>=0.27.2",
 ]
+[project.scripts]
+downwell-train = "downwell_ai.cli:app"
+downwell-play = "downwell_ai.cli:play_app"
+downwell-plot = "downwell_ai.cli:plot_app"
 
 [dependency-groups]
-dev = [
-  "hypothesis>=6.152.4",
-  "pytest>=9.0.3",
-  "ruff>=0.15.12",
-  "ssort>=0.16.0",
-  "ty>=0.0.34",
-]
-linux = [ "pynput>=1.8.1", "python-xlib>=0.33" ]
-windows = [ "dxcam>=0.3.0", "pydirectinput-rgx>=2.1.3" ]
+dev = [ "pytest>=9.1.1", "ruff>=0.16.10", "ssort>=0.17.0", "ty>=0.0.84" ]
+
+[tool.hatch.build.targets.wheel]
+packages = [ "downwell_ai" ]
 
 [tool.uv]
+python-preference = "only-managed"
 exclude-newer = "7 days"
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-torchvision = [
-  { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
 
 [tool.ruff]
 target-version = "py313"
 line-length = 160
-src = [ "./scripts", "./src", "./tests" ]
+src = [ ".", "./tests" ]
+extend-exclude = [ "**/generated/**" ]  # written by scripts/gen_*.py, checked by the generated hook instead
 [tool.ruff.format]
-quote-style = "double"
 indent-style = "space"
-skip-magic-trailing-comma = false
+quote-style = "double"
 line-ending = "lf"
-docstring-code-format = true
+skip-magic-trailing-comma = false
 docstring-code-line-length = 160
-[tool.ruff.lint]
-select = [ "ALL" ]
-ignore = [
-  "COM812", # missing-trailing-comma (formatter conflict)
-  "D100",   # undocumented-public-module (no module docstrings for now)
-  "D104",   # undocumented-public-package (no module docstrings for now)
-  "ERA001", # commented-out-code (leave for now)
-  "FIX002", # line-contains-todo
-  "INP001", # implicit-namespace-package (no module docstrings for now)
-  "RUF012", # mutable-default-value (what is this?)
-  "TD003",  # missing-todo-link (TODOs aren't tied to issues (yet))
+docstring-code-format = true
+[tool.ruff.lint.per-file-ignores]
+"scripts/**" = [ "ALL" ]
+"tests/**" = [
+  "ANN201",  # missing-return-type-undocumented-public-function
+  "D100",    # undocumented-public-module (no need for these in tests)
+  "D103",    # undocumented-public-function (same)
+  "INP001",  # implicit-namespace-package (if tests become a package, remove)
+  "PLR2004", # magic-value-comparison (expected values read clearer inline)
+  "S101",    # assert (idiomatic in pytest)
+  "T201",    # print (fine in test output)
 ]
-fixable = [ "ALL" ]
-unfixable = []
 [tool.ruff.lint.isort]
 force-single-line = true
 force-sort-within-sections = true
@@ -82,15 +84,6 @@ section-order = [
   "first-party",
   "local-folder",
 ]
-[tool.ruff.lint.per-file-ignores]
-"tests/**" = [
-  "ANN201", # missing-return-type-undocumented-public-function
-  "D100",   # undocumented-public-module (no need for these in tests)
-  "D103",   # undocumented-public-function (same)
-  "INP001", # implicit-namespace-package (if tests become a package, remove)
-  "S101",   # assert (idiomatic in pytest)
-  "T201",   # print (fine in test output)
-]
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 [tool.ruff.lint.pylint]
@@ -98,6 +91,21 @@ max-args = 7
 max-branches = 20
 max-returns = 6
 max-statements = 60
+[tool.ruff.lint]
+select = [ "ALL" ]
+ignore = [
+  "COM812", # missing-trailing-comma (formatter conflict)
+  "CPY001", # missing-copyright-notice (the license lives in LICENSE, not per-file headers)
+  "D100",   # undocumented-public-module (no module docstrings for now)
+  "D104",   # undocumented-public-package (no module docstrings for now)
+  "ERA001", # commented-out-code (leave for now)
+  "FIX002", # line-contains-todo
+  "INP001", # implicit-namespace-package (no module docstrings for now)
+  "RUF012", # mutable-default-value (what is this?)
+  "TD003",  # missing-todo-link (TODOs aren't tied to issues (yet))
+]
+fixable = [ "ALL" ]
+unfixable = []
 
 [tool.pyproject-fmt]
 column_width = 120
@@ -114,7 +122,7 @@ possibly-unresolved-reference = "warn"
 unresolved-import = "warn"
 
 [tool.pytest.ini_options]
-pythonpath = [ "." ]
 testpaths = [ "tests" ]
-markers = [ "smoke: requires game running; skipped by default" ]
+pythonpath = [ "." ]
 addopts = [ "-m", "not smoke", "--strict-markers" ]
+markers = [ "smoke: requires game running; skipped by default" ]
