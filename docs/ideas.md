@@ -1,28 +1,41 @@
 # Ideas
 
-Things worth trying after the current changes have been trained on, one at a time.
+Things worth trying after the current changes have been trained on.
 
-## Exploration
+## Next, in order
 
-- **Temporally extended epsilon-greedy** (Dabney et al. 2020): repeat each random action for a sampled duration, so exploration commits to a direction long enough to reach a side room or a different path.
-- **NoisyNets or a curiosity bonus (RND)** if side rooms still never get found.
+1. **Motion history, fresh `full_run`** -- does hits per 1,000 px get below the ~0.4 floor all earlier runs hit around 2M steps?
+2. **Longer horizon** -- `gamma = 0.998`, `n_steps = 5`, nothing else changed
+   - 0.995 sees ~200 steps (~13 s), a level is ~600 steps
+   - Q values grow ~2.5x, watch loss and mean Q
+   - if it diverges, add value rescaling (Pohlen et al. 2018): train on `h(x) = sign(x)(sqrt(|x| + 1) - 1) + eps*x`
 
-## Long horizon
+## Backlog
 
-At 15 decisions per game second, `gamma = 0.995` looks ~200 steps (~13 s) ahead. A level takes ~600 steps, so from its top the agent can't see that level's bonus, let alone a shop's hp paying off two levels later. The ideas below are ordered cheapest first.
+Roughly cheapest first.
 
-- **Higher gamma with longer n-step returns**: `gamma = 0.998` (~500 steps, ~33 s) or `0.999` (~1000 steps, ~67 s) with `n_steps` 5-10. Config only, but Q values grow with the horizon, so watch loss and mean Q for divergence, and consider a slower `target_update_interval`.
-- **Value function rescaling** (Pohlen et al. 2018, used in R2D2): train on `h(x) = sign(x)(sqrt(|x| + 1) - 1) + eps*x` of the target. It keeps `gamma >= 0.997` stable without clipping rewards, which makes it the usual companion to a higher gamma.
-- **Distributional head** (QR-DQN or C51): learns the spread of returns, not just their mean, which tends to help when returns are long and noisy.
-- **Discount by game time, not by step**: the upgrade menu and the transitions freeze the game, but each step there still costs a factor of gamma. Discounting by frames elapsed makes those steps free.
-- **Separate upgrade picker**: picks are ~0.2% of the buffer and pay off levels later. If they stay tied to the slot rather than the upgrade even with the one-step menu, try a contextual bandit scoring each offer from the run state (hp, max hp, max ammo, owned upgrades, level), learned from how far the episode got after the pick, with UCB or epsilon exploration. Start with a table of mean outcome per upgrade, split by hp; it can be seeded from old `training.log` picks (~6k per 5M run). The env plays the menu, the DQN never sees it.
-- **Shops stay with the DQN**: reaching one is movement, and buying hp pays now through `heal_reward`. If runs show shops entered but nothing bought, script the purchase like the upgrade menu. Unlike that menu, the shop cursor wraps around its four slots, and slot 0 (price 0) is the way back out.
-- **PPO with GAE** (`gamma = 0.999`, `lambda = 0.95`): copes better with long horizons in practice, but wants several environments in parallel and there is one game process. This is a large change.
+- **Overlap learning with the game** -- split `step()` into send and wait, learn while the game simulates its 4 frames; profile the env step first to see how much of it is the game
+- **Bigger batch, less often** -- 256 every 8 steps instead of 128 every 4, half the kernel launches at the same replay ratio; changes learning, needs its own run
+- **Pick the best model over several evaluations** -- one episode decides `best.pt` today
+- **Discount by game time** -- the menu and transitions freeze the game but still cost a factor of gamma per step
+- **Temporally extended epsilon** (Dabney et al. 2020) -- repeat each random action for a sampled duration
+- **NoisyNets or RND** -- if side rooms or shops still go unfound
+- **Distributional head** (QR-DQN or C51) -- long, noisy returns
+- **Lightweight resume** -- weights, target, optimizer, step and RNG without the buffer; only if crashes keep happening
+- **CUDA graphs** -- launches are still most of the learn step; graphs measured ~2.5 ms per update against ~4.2 now, but need capturable Adam, fixed input tensors and undoing the warmup steps
+- **PPO with GAE** -- better with long horizons, but wants parallel environments and there is one game process; a large change
 
-## Training
+## Difficult, to assess later
 
-- **Save more than the best weights**: `best.pt` (current `model.pt`), `final.pt` at the end, and a weights-only checkpoint every 100k steps (~1.1 MB each) to compare versions with `downwell-play`.
-- **Lightweight resume**: Weights, target network, optimizer, step and RNG state, without the ~400 MB replay buffer. Only if crashes keep happening; a resumed run starts with an empty buffer and behaves differently.
-- **Pick the best model over several evaluation episodes**: One episode decides `model.pt` today, which is noisy.
-- **CUDA graphs for acting and learning**: the network is small enough that python launching its kernels, not the gpu, is most of the cost. Measured on the 3080, a graph replay cut action selection from 0.76 to 0.20 ms and a gradient step from ~6 to ~2.5 ms, about 1 ms per env step in all. It needs fused capturable Adam, fixed input tensors copied into before each replay, and the warmup optimizer steps undone after capture so the first replay is the first real step.
-- **Learn while the game simulates, via rtgym**: a step spends ~1.3 ms polling for the game's 4 frames. rtgym runs the environment step in the background, so the gradient step and replay sampling would happen while the game simulates instead of after it. Deferred because it is a larger change.
+1. **Upgrade picker**
+   - baseline first: fixed ranking, apple first
+   - from 4,604 near-random picks: apple +0.36 ± 0.04 levels over the average pick on the same level, everything else within ±0.1, safety jetpack last at -0.12
+   - then a learned one, only worth it if it beats the ranking through context (apple when hurt, gem upgrades with gems in hand)
+   - small MLP (2x64, ~10k params) scoring one option at a time from run state + option, target = main reward from the pick to the episode end, epsilon exploration, trained per episode, saved with the weights
+   - env plays the menu through it, the DQN never sees it
+   - log the full context (hp, gems, owned) at each pick first
+2. **Shops**
+   - export shop item ids (`layout.py`, re-inject, `gen_ptrs.py`) -- only prices today
+   - same picker with a "leave" option, purchase scripted like the upgrade menu
+   - cursor wraps over 4 slots, slot 0 (price 0) is the way out
+   - entered in 0.6-3.6% of episodes and nothing ever bought, so entering may need a small reward while holding gems

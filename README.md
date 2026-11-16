@@ -45,18 +45,19 @@ Run the injector once on a clean `data.win`, since it appends code. The snapshot
 Start the patched game (any screen, the agent takes over input and resets runs itself), then:
 
 ```sh
-uv run downwell-train configs/default.toml                               # 1M steps, every field is required, see configs/README.md
-uv run downwell-train configs/long_run.toml                              # the same over 2.5M steps
-uv run downwell-train configs/full_run.toml                              # the same over 5M steps
-uv run downwell-train configs/default.toml --rendered                    # keep drawing to watch the agent play
-uv run downwell-train configs/default.toml --resume runs/<run>/model.pt  # keep training a model into a new run
+uv run downwell-train configs/default.toml                              # 1M steps, every field is required, see configs/README.md
+uv run downwell-train configs/long_run.toml                             # the same over 2.5M steps
+uv run downwell-train configs/full_run.toml                             # the same over 5M steps
+uv run downwell-train configs/default.toml --rendered                   # keep drawing to watch the agent play
+uv run downwell-train configs/default.toml --resume runs/<run>/best.pt  # keep training a model into a new run
 ```
 
 Play a trained model (reads the run's `config.json` next to it):
 
 ```sh
-uv run downwell-play runs/<run>/model.pt                           # watch 3 episodes at real game speed
-uv run downwell-play runs/<run>/model.pt --episodes 20 --headless  # measure it as fast as possible
+uv run downwell-play runs/<run>/best.pt                           # watch 3 episodes at real game speed
+uv run downwell-play runs/<run>/best.pt --episodes 20 --headless  # measure it as fast as possible
+uv run downwell-play runs/<run>/weights-00500000.pt               # any snapshot plays the same way
 ```
 
 Plot training curves (written automatically when a run finishes):
@@ -75,7 +76,9 @@ Each run writes to `runs/downwell-seed<seed>-<timestamp>/`:
 | `metrics.jsonl` | per-episode return, depth, reward terms and hits              |
 | `plots.png`     | training curves, see `downwell-plot`                          |
 | `eval-*.gif`    | periodic evaluation episodes, drawn from the agent's own view |
-| `model.pt`      | weights of the best evaluation episode                        |
+| `best.pt`       | weights of the best evaluation episode so far                 |
+| `weights-*.pt`  | weights every 100k steps, ~1.1 MB each                        |
+| `final.pt`      | weights at the last step                                      |
 
 ## How it works
 

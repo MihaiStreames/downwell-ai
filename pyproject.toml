@@ -119,7 +119,7 @@ root = [ "." ]
 python-version = "3.13"
 [tool.ty.rules]
 possibly-unresolved-reference = "warn"
-unresolved-import = "warn"
+import-not-found = "warn"
 
 [tool.pytest.ini_options]
 testpaths = [ "tests" ]

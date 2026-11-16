@@ -61,10 +61,12 @@ def _load_run_config(model_path: Path) -> TrainingConfig:
 def train(
     config_path: Annotated[Path, typer.Argument(metavar="CONFIG", exists=True, dir_okay=False, help="training config toml, see configs/README.md")],
     headless: Annotated[bool | None, typer.Option("--headless/--rendered", help="skip drawing while training, overrides the config")] = None,
-    resume_path: Annotated[Path | None, typer.Option("--resume", exists=True, dir_okay=False, help="model.pt to keep training from")] = None,
+    resume_path: Annotated[
+        Path | None, typer.Option("--resume", exists=True, dir_okay=False, help="best.pt, final.pt or weights-*.pt to keep training from")
+    ] = None,
     runs_directory: Path = Path("runs"),
 ) -> None:
-    """Train an agent on the running game, then save its best weights and metrics."""
+    """Train an agent on the running game, saving its weights and metrics into the run folder."""
     try:
         config = msgspec.toml.decode(config_path.read_bytes(), type=TrainingConfig)
     except (ValidationError, DecodeError) as error:
@@ -93,7 +95,7 @@ def train(
                 writer.write(metrics)
                 display.update(metrics)
 
-            agent = run_training(config, env, run_directory, on_metrics=record_metrics, initial_weights=initial_weights)
+            run_training(config, env, run_directory, on_metrics=record_metrics, initial_weights=initial_weights)
 
     except DownwellError as error:
         logger.error("training stopped: {}", error)
@@ -102,14 +104,15 @@ def train(
     finally:
         env.close()
 
-    torch.save(agent.copy_weights(), run_directory / "model.pt")
     plot_runs({run_directory.name: read_metrics(run_directory / _METRICS_FILE)}, run_directory / _PLOTS_FILE)
     console.print(f"run saved to [cyan]{run_directory}[/]")
 
 
 @play_app.command()
 def play(
-    model_path: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="model.pt from a training run, its config.json is read alongside")],
+    model_path: Annotated[
+        Path, typer.Argument(exists=True, dir_okay=False, help="best.pt, final.pt or weights-*.pt from a run, its config.json is read alongside")
+    ],
     *,
     episodes: Annotated[int, typer.Option(min=1)] = 3,
     eps: Annotated[float | None, typer.Option(min=0, max=1, help="random action rate, defaults to the run's eval_eps")] = None,

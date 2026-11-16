@@ -2,6 +2,7 @@ from collections.abc import Callable
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Final
 
 from loguru import logger
 import numpy as np
@@ -16,6 +17,9 @@ from downwell_ai.metrics import EpisodeMetrics
 from downwell_ai.metrics import EpisodeTally
 from downwell_ai.metrics import Metrics
 from downwell_ai.utils.gif import save_gif
+
+
+_SNAPSHOT_INTERVAL_STEPS: Final[int] = 100_000
 
 
 def _linear_schedule(start: float, end: float, duration: int, step: int) -> float:
@@ -55,8 +59,8 @@ def run_training(
     run_directory: Path,
     on_metrics: Callable[[Metrics], None],
     initial_weights: dict[str, torch.Tensor] | None = None,
-) -> DQNAgent:
-    """Train an agent and return it holding the weights of its best evaluation episode."""
+) -> None:
+    """Train an agent, writing its weights into `run_directory` as it goes."""
     torch.manual_seed(config.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.debug("training on {}", device)
@@ -69,7 +73,7 @@ def run_training(
     collector = NStepCollector(buf, config.n_steps, config.gamma)
 
     eps_start = config.resume_eps_start if initial_weights is not None else config.eps_start
-    best_return, best_weights = float("-inf"), agent.copy_weights()
+    best_return = float("-inf")
 
     obs, _ = env.reset(seed=config.seed)
     tally, ep_count = EpisodeTally(), 0
@@ -90,8 +94,11 @@ def run_training(
 
             if step >= config.learning_starts and step % config.train_frequency == 0:
                 on_metrics(agent.learn(buf.sample(config.batch_size), step))
+
             if step % config.target_update_interval == 0:
                 agent.sync_target()
+            if step % _SNAPSHOT_INTERVAL_STEPS == 0:
+                torch.save(agent.copy_weights(), run_directory / f"weights-{step:08d}.pt")
 
             if not (is_terminated or is_truncated):
                 continue
@@ -105,11 +112,11 @@ def run_training(
                 gif_writer.submit(save_gif, frames, run_directory / f"eval-{step:08d}.gif", config.frame_skip).add_done_callback(_log_gif_failure)
 
                 if evaluation.episode_return > best_return:
-                    best_return, best_weights = evaluation.episode_return, agent.copy_weights()
+                    best_return = evaluation.episode_return
+                    torch.save(agent.copy_weights(), run_directory / "best.pt")
                     logger.debug("new best evaluation return {:.1f} at step {}", best_return, step)
 
             obs, _ = env.reset()
             tally = EpisodeTally()
 
-    agent.load_weights(best_weights)
-    return agent
+    torch.save(agent.copy_weights(), run_directory / "final.pt")
