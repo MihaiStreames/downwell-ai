@@ -1090,11 +1090,11 @@ wheels = [
 
 [[package]]
 name = "pymemoryeditor"
-version = "3.4.1"
+version = "3.4.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/90/18/c49ec75f57dfeaec9d63dc81b924c30f9f282720b7927419f10c361d8fca/pymemoryeditor-3.4.1.tar.gz", hash = "sha256:5bbe1328fa13bdceea8d85fd1ec1ff116898fe9ba6383aa4f666c1682ff2f38b", size = 1877277, upload-time = "2026-11-03T16:52:24.001Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/a6/81a7802b918a5e8b9b0e1f8a6b052e0a228e842a7e5b21f084caabfc956a/pymemoryeditor-3.4.3.tar.gz", hash = "sha256:16ebd95de4ca8cce6e9f5bc34474427b38e0955804ff15a16ea0afd066d3cf00", size = 1878185, upload-time = "2026-11-13T03:06:33.848Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/d9/08ee78c1e1a2aeb21defdeaaecf35e1048548a494d86284a611830990d12/pymemoryeditor-3.4.1-py3-none-any.whl", hash = "sha256:39ab8273d2f15a4eff32ffcda02e37b8e97a4df418a98e23a2ca5f6b91d662b3", size = 356841, upload-time = "2026-11-03T16:52:21.999Z" },
+    { url = "https://files.pythonhosted.org/packages/31/78/5c682d588e71c4991c23d64baf40fd27f07e7afd82697f5a713babd2db08/pymemoryeditor-3.4.3-py3-none-any.whl", hash = "sha256:49d2cce2fbda28caa76c9cc233f7e195c4f252f762129845d082e54c39f1ce33", size = 357140, upload-time = "2026-11-13T03:06:32.362Z" },
 ]
 
 [[package]]
