@@ -21,7 +21,7 @@ repos:
         priority: 0
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 3c6e76e10abcae02303212289efed3413350769c  # frozen: v2.30.6
+    rev: 02ef6d1c28994054a843e58604e1a343faa42987  # frozen: v2.31.2
     hooks:
       - id: pyproject-fmt
         priority: 0
